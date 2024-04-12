@@ -17,9 +17,19 @@ function createDOM(VNode) {
     if(typeof VNode === 'string') {
         return document.createTextNode(VNode)
     }
-
-    const { props = {}, type } = VNode
+    
+    const { props = {}, type, key, ref } = VNode
     const { children } = props
+
+    // 处理类组件
+    if(typeof type === 'function' && type.IS_CLASS_COMP) {
+        return getDOMByClassComponent(VNode)
+    }
+    // 处理函数组件
+    if(typeof type === 'function') {
+        return getDOMByFunctionComponent(VNode)
+    }
+
     const container = document.createElement(type)
     // 只有一个文本类型节点
     if(typeof children === 'string')  {
@@ -37,9 +47,51 @@ function createDOM(VNode) {
         
     }
 
-    // todo: 设置属性
+    setPropsForDOM(container, props) 
+    
 
     return container
+}
+
+function setPropsForDOM(container, props = {}) {
+    if(!container) return 
+    const { style, className } = props
+
+    for(let key in props) {
+        if(key === 'children') continue
+        if(/^on[A-Z].*/.test(key)) {
+            // todo: 事件
+
+        } else if(key === 'style') {
+            // style 要求是纯对象类型 - {}
+            if(Object.prototype.toString.call(style) !== '[object Object]') {
+                throw new Error('The `style` prop expects a mapping from style properties to values')
+            } else {
+                for(let key in style) {
+                    container.style[key] = style[key]
+                }
+            }
+        } else if(key === 'className') {
+            container.className = className
+        }
+        container.setAttribute(key, props[key])
+    }
+
+}
+
+function getDOMByFunctionComponent(VNode) {
+    const { type, props } = VNode
+    const renderVNode = type(props)
+    if(!renderVNode) return
+    return createDOM(renderVNode)
+}
+
+function getDOMByClassComponent(VNode) {
+    const { type, props } = VNode
+    const classInstance = new type(props)
+    const renderVNode = classInstance.render()
+    if(!renderVNode) return
+    return createDOM(renderVNode)
 }
 
 export default {
