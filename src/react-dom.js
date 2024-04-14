@@ -1,7 +1,7 @@
-function render(VNode, containerDOM) {
-    console.log('VNode', VNode);
-    console.log('containerDOM', containerDOM);
+import { addEvent } from './event'
+import { primitiveDataTypes } from './utils';
 
+function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
 }
 
@@ -12,9 +12,9 @@ function mount(VNode, containerDOM) {
     containerDOM.appendChild(dom)
 }
 
-function createDOM(VNode) {
+export function createDOM(VNode) {
     // 字符串直接当作文本挂载
-    if(typeof VNode === 'string') {
+    if(primitiveDataTypes.includes(typeof VNode)) {
         return document.createTextNode(VNode)
     }
     
@@ -32,7 +32,7 @@ function createDOM(VNode) {
 
     const container = document.createElement(type)
     // 只有一个文本类型节点
-    if(typeof children === 'string')  {
+    if(primitiveDataTypes.includes(typeof children))  {
         let dom = document.createTextNode(children)
         container.appendChild(dom)
     } else if(typeof children === 'object') {
@@ -60,8 +60,7 @@ function setPropsForDOM(container, props = {}) {
     for(let key in props) {
         if(key === 'children') continue
         if(/^on[A-Z].*/.test(key)) {
-            // todo: 事件
-
+            addEvent(container, key.toLowerCase(), props[key])
         } else if(key === 'style') {
             // style 要求是纯对象类型 - {}
             if(Object.prototype.toString.call(style) !== '[object Object]') {
@@ -90,8 +89,12 @@ function getDOMByClassComponent(VNode) {
     const { type, props } = VNode
     const classInstance = new type(props)
     const renderVNode = classInstance.render()
+
     if(!renderVNode) return
-    return createDOM(renderVNode)
+    const dom = createDOM(renderVNode)
+    // 将dom节点记录在实例上。setState中会根据dom节点去查到其父节点，用新dom替换旧dom
+    classInstance.oldDOM = dom
+    return dom
 }
 
 export default {

@@ -9,11 +9,35 @@ function FuncComp(props) {
 }
 
 class ClassComp extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            count1: 0,
+            count2: 1,
+        }
+    }
+    handleAddCount(e) {
+        this.setState({
+            count1: this.state.count1 + 1,
+        })
+        this.setState({
+            count2: this.state.count2 + 1
+        })
+    }
     render() {
-        return <div>asdf{this.props.aaa}</div>
+        const { count1, count2 } = this.state
+        return <div>
+            <div onClick={(e) => this.handleAddCount(e)}>增加</div>
+            <div>count1: {count1}</div>
+            <div>count2: {count2}</div>
+        </div>
     }
 }
 
 const root = document.getElementById('root') 
-const elem = <div className='red' kk="vv" key="asd" onClick={() => {console.log(111)}} style={{color: 'blue'}}>sss<div>asdf<span>sdgdfg</span><div>kkkkk</div></div>bbb</div> 
-ReactDOM.render(<ClassComp aaa="aaa" />, root);
+// const elem = (
+//         <div className='red' id="a" kk="vv" key="asd" onClick={(e) => {console.log('父亲', e.currentTarget)}} style={{color: 'blue'}}>
+//             <span onClick={(e) => {console.log(e.currentTarget);}}>子元素</span>
+//         </div> 
+//     )
+ReactDOM.render(<ClassComp />, root);
