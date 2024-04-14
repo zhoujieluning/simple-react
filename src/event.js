@@ -1,3 +1,5 @@
+import { UpdaterQueue } from "./Component"
+
 /**
  * 事件合成机制-将事件挂载到document，后续通过冒泡机制在document上调用
  * @param {*} dom 
@@ -19,6 +21,10 @@ export function addEvent(dom, eventName, bindFuction) {
  * @param {Event} nativeEvent 
  */
 function dispatchEvent(nativeEvent) {
+    // 打开状态批量处理开关
+    const updaterQueueIns = UpdaterQueue.getInstance()
+    updaterQueueIns.isBatchingUpdate = true
+
     const syntheticEvent = createSyntheticEvent(nativeEvent)
 
     // 事件源-触发事件的dom
@@ -45,6 +51,10 @@ function dispatchEvent(nativeEvent) {
         
         currentDom = currentDom.parentNode
     }
+
+    updaterQueueIns.isBatchingUpdate = false
+    updaterQueueIns.flushUpdaters()
+
 }
 
 /**
