@@ -1,5 +1,5 @@
 import { addEvent } from './event'
-import { primitiveDataTypes } from './utils';
+import { primitiveDataTypes, REACT_ELEMENT, REACT_FORWARD_REF } from './utils';
 
 function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
@@ -26,8 +26,12 @@ export function createDOM(VNode) {
         return getDOMByClassComponent(VNode)
     }
     // 处理函数组件
-    if(typeof type === 'function') {
+    if(typeof type === 'function' && type.$$typeof === REACT_ELEMENT) {
         return getDOMByFunctionComponent(VNode)
+    }
+    // 处理函数组件-forwardRef
+    if(type.$$typeof === REACT_FORWARD_REF) {
+        return getDOMByForwardRefFunctionComponent(VNode)
     }
 
     const container = document.createElement(type)
@@ -98,6 +102,15 @@ function getDOMByClassComponent(VNode) {
     // 将dom节点记录在实例上。setState中会根据dom节点去查到其父节点，用新dom替换旧dom
     classInstance.oldDOM = dom
     return dom
+}
+
+function getDOMByForwardRefFunctionComponent(VNode) {
+    const { type, props, ref } = VNode
+    const render = type.render
+    if(typeof render !== 'function') return
+    
+    const renderVNode = render(props, ref)
+    return createDOM(renderVNode)
 }
 
 export default {

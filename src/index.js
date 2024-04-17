@@ -8,6 +8,10 @@ function FuncComp(props) {
     return <div>asdf</div>
 }
 
+const ForwardFuncComp = React.forwardRef((props, ref) => {
+    return <div ref={ref}>asdf</div>
+})
+
 class ClassComp extends React.Component {
     constructor(props) {
         super(props)
@@ -48,5 +52,5 @@ const ref = React.createRef()
 //             <span onClick={(e) => {console.log(e.currentTarget);}}>子元素</span>
 //         </div> 
 //     )
-ReactDOM.render(<ClassComp ref={ref}/>, root);
-console.log('---ref', ref);
+ReactDOM.render(<ForwardFuncComp ref={ref}/>, root);
+console.log('---ref', ref); 
