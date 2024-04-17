@@ -52,7 +52,6 @@ function dispatchEvent(nativeEvent) {
         currentDom = currentDom.parentNode
     }
 
-    updaterQueueIns.isBatchingUpdate = false
     updaterQueueIns.flushUpdaters()
 
 }

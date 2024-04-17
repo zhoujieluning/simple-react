@@ -20,7 +20,7 @@ export class UpdaterQueue {
     }
 
     flushUpdaters() {
-        this.isBatchingUpdate = true
+        this.isBatchingUpdate = false
         for(let updater of this.updaters) {
             updater.launchUpdate()
         }
