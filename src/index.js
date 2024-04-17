@@ -42,9 +42,11 @@ class ClassComp extends React.Component {
 }
 
 const root = document.getElementById('root') 
+const ref = React.createRef()
 // const elem = (
-//         <div className='red' id="a" kk="vv" key="asd" onClick={(e) => {console.log('父亲', e.currentTarget)}} style={{color: 'blue'}}>
+//         <div className='red' id="a" kk="vv" key="asd" ref={ref} onClick={(e) => {console.log('父亲', e.currentTarget)}} style={{color: 'blue'}}>
 //             <span onClick={(e) => {console.log(e.currentTarget);}}>子元素</span>
 //         </div> 
 //     )
-ReactDOM.render(<ClassComp />, root);
+ReactDOM.render(<ClassComp ref={ref}/>, root);
+console.log('---ref', ref);

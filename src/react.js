@@ -29,7 +29,14 @@ function createElement(type, props, ...children) {
     return res
 }
 
+function createRef() {
+    return {
+        current: null
+    }
+}
+
 export default {
     createElement,
-    Component
+    Component,
+    createRef
 }

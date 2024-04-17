@@ -49,6 +49,7 @@ export function createDOM(VNode) {
 
     setPropsForDOM(container, props) 
     
+    ref && (ref.current = container)
 
     return container
 }
@@ -86,9 +87,11 @@ function getDOMByFunctionComponent(VNode) {
 }
 
 function getDOMByClassComponent(VNode) {
-    const { type, props } = VNode
+    const { type, props, ref } = VNode
     const classInstance = new type(props)
     const renderVNode = classInstance.render()
+
+    ref && (ref.current = classInstance)
 
     if(!renderVNode) return
     const dom = createDOM(renderVNode)
