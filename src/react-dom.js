@@ -1,7 +1,12 @@
 import { addEvent } from './event'
-import { primitiveDataTypes, REACT_ELEMENT, REACT_FORWARD_REF } from './utils';
+import { primitiveDataTypes, REACT_ELEMENT, REACT_FORWARD_REF, REACT_TEXT } from './utils';
 
 function render(VNode, containerDOM) {
+    // 文本直接挂载
+    if(primitiveDataTypes.includes(typeof VNode)) {
+        containerDOM.appendChild(document.createTextNode(VNode))
+        return 
+    }
     mount(VNode, containerDOM)
 }
 
@@ -13,13 +18,15 @@ function mount(VNode, containerDOM) {
 }
 
 export function createDOM(VNode) {
-    // 字符串直接当作文本挂载
-    if(primitiveDataTypes.includes(typeof VNode)) {
-        return document.createTextNode(VNode)
-    }
-    
     const { props = {}, type, key, ref } = VNode
-    const { children } = props
+    const { children = [] } = props
+
+    // 处理文本
+    if(VNode.$$typeof === REACT_TEXT) {
+        const dom = document.createTextNode(VNode.value)
+        VNode.dom = dom
+        return dom
+    }
 
     // 处理类组件
     if(typeof type === 'function' && type.IS_CLASS_COMP) {
@@ -30,31 +37,22 @@ export function createDOM(VNode) {
         return getDOMByFunctionComponent(VNode)
     }
     // 处理函数组件-forwardRef
-    if(type.$$typeof === REACT_FORWARD_REF) {
+    if(VNode.$$typeof === REACT_FORWARD_REF) {
         return getDOMByForwardRefFunctionComponent(VNode)
     }
 
+    // 处理普通标签
     const container = document.createElement(type)
-    // 只有一个文本类型节点
-    if(primitiveDataTypes.includes(typeof children))  {
-        let dom = document.createTextNode(children)
-        container.appendChild(dom)
-    } else if(typeof children === 'object') {
-        // 有多个子节点
-        if(Array.isArray(children)) {
-            children.forEach(item => {
-                mount(item, container)
-            })
-        } else { // 有一个非文本类型子节点
-            mount(children, container)
-        }
-        
-    }
+    children.forEach((child, index) => {
+        child.index = index
+        mount(child, container)
+    })
 
     setPropsForDOM(container, props) 
     
     ref && (ref.current = container)
 
+    VNode.dom = container
     return container
 }
 
@@ -99,8 +97,9 @@ function getDOMByClassComponent(VNode) {
 
     if(!renderVNode) return
     const dom = createDOM(renderVNode)
-    // 将dom节点记录在实例上。setState中会根据dom节点去查到其父节点，用新dom替换旧dom
-    classInstance.oldDOM = dom
+    // 将dom节点和VNode记录在实例上。
+    classInstance.oldVNode = renderVNode
+    classInstance.oldVNode.dom = dom
     return dom
 }
 
@@ -111,6 +110,150 @@ function getDOMByForwardRefFunctionComponent(VNode) {
     
     const renderVNode = render(props, ref)
     return createDOM(renderVNode)
+}
+
+export function updateDOMTree(oldVNode, newVNode, oldDOM) {
+    const typeMaps = {
+        NO_OPERATE: !oldVNode && !newVNode,
+        DELETE: oldVNode && !newVNode,
+        APPEND: !oldVNode && newVNode,
+        REPLACE: oldVNode && newVNode && oldVNode.type !== newVNode.type,
+        DIFF: oldVNode && newVNode && oldVNode.type === newVNode.type
+    }
+    const parent = oldDOM.parentNode
+    const oprType = Object.keys(typeMaps).filter(type => typeMaps[type])[0]
+
+    switch(oprType) {
+        // 新旧节点都不存在
+        case 'NO_OPERATE':
+            break
+        // 旧节点存在，新节点不存在，删除旧dom
+        case 'DELETE':
+            oldDOM.remove()
+            break
+        // 旧节点不存在，新节点存在，插入新dom
+        case 'APPEND':
+            parent.appendChild(createDOM(newVNode))
+            break
+        // 新旧节点都存在，类型不一样，替换
+        case 'REPLACE':
+            oldDOM.remove()
+            parent.appendChild(createDOM(newVNode))
+            break
+        // 新旧节点都存在，类型也一样，深度比较
+        case 'DIFF':
+            deepDomDiff(oldVNode, newVNode, oldDOM)
+    }
+}
+
+function deepDomDiff(oldVNode, newVNode, oldDOM) {
+    const  { $$typeof, type = {} } = oldVNode
+    const typeMaps = {
+        ORIGIN_NODE: typeof type === 'string',
+        CLASS_COMPONENT: typeof type === 'function' && type.IS_CLASS_COMP,
+        FUNC_COMPONENT: typeof type === 'function' && !type.IS_CLASS_COMP,
+        TEXT: $$typeof === REACT_TEXT
+    }
+    const DIFF_TYPE = Object.keys(typeMaps).filter(item => typeMaps[item])[0]
+    switch(DIFF_TYPE) {
+        case 'ORIGIN_NODE': 
+            newVNode.dom = oldVNode.dom
+            setPropsForDOM(oldDOM, newVNode.props)
+            updateChildren(oldVNode.props.children, newVNode.props.children, oldVNode.dom)
+            break
+        case 'CLASS_COMPONENT': 
+            updateClassComponent(oldVNode, newVNode)
+            break
+        case 'FUNC_COMPONENT': 
+            updateFuncComponent(oldVNode, newVNode)
+            break
+        case 'TEXT': 
+            newVNode.dom = oldVNode.dom
+            oldVNode.dom.textContent = newVNode.value
+            break
+    }
+}
+
+function updateClassComponent(oldVNode, newVNode) {
+    const { type, props } = newVNode
+    const classInstance = new type(props)
+    const renderVNode = classInstance.render()
+    renderVNode.classInstance = classInstance
+    updateDOMTree(oldVNode, renderVNode, oldVNode.dom)
+}
+
+function updateFuncComponent(oldVNode, newVNode) {
+    const { type, props } = newVNode
+    const renderVNode = type(props)
+    updateDOMTree(oldVNode, renderVNode, oldVNode.dom)
+}
+
+function updateChildren(oldVNodeChildren, newVNodeChildren, parent) {
+    // 基点，最近的一个能匹配到新节点的旧节点的下标
+    let lasNotChangeIndex = -1
+    // 用于记录新节点的操作： 移动，新增
+    const actions = []
+    const oldVNodeKeyMap = {}
+    oldVNodeChildren.forEach(oldVNodeChild => oldVNodeKeyMap[oldVNodeChild.key] = oldVNodeChild)
+    newVNodeChildren.forEach((newVNodeChild, index) => {
+        // 匹配到旧节点
+        if(oldVNodeKeyMap[newVNodeChild.key]) {
+            const oldVNodeChild = oldVNodeKeyMap[newVNodeChild.key]
+            // 旧节点位置靠前
+            if(oldVNodeChild.index < lasNotChangeIndex) {
+                actions.push({
+                    operation: 'move',
+                    newVNodeChild,
+                    oldVNodeChild,
+                    index
+                })
+                deepDomDiff(oldVNodeChild, newVNodeChild, oldVNodeChild.dom.parent)
+
+                // 将用到的删除，oldVNodeKeyMap中最后剩下的，都是用不到的
+                delete oldVNodeKeyMap[newVNodeChild.key]
+            } else {
+                // 使用旧节点
+                lasNotChangeIndex = oldVNodeChild.index
+                deepDomDiff(oldVNodeChild, newVNodeChild, oldVNodeChild.dom.parent)
+                // 将用到的删除，oldVNodeKeyMap中最后剩下的，都是用不到的
+                delete oldVNodeKeyMap[newVNodeChild.key]
+            }
+        } else {
+            // 没匹配到旧节点，说明是新增的
+            actions.push({
+                operation: 'create',
+                newVNodeChild,
+                index
+            })
+        }
+    })
+
+    // 将无用的旧dom都删掉
+    const VNodeToMove = actions.filter(action => action.operation === 'move').map(action => action.oldVNodeChild)
+    const VNodeToDelete = Object.values(oldVNodeKeyMap)
+    VNodeToMove.concat(VNodeToDelete).forEach(oldVNode => {
+        oldVNode.dom.remove()
+    })
+
+    actions.forEach(action => {
+        const { operation: oprType, oldVNodeChild, newVNodeChild, index } = action
+        const childNodes = parent.childNodes
+        const childNode = childNodes[index]
+        if(oprType === 'move') {
+            if(childNode) {
+                parent.insertBefore(oldVNodeChild.dom, childNode)
+            } else {
+                parent.appendChild(oldVNodeChild.dom)
+            }
+        } else {
+            if(childNode) {
+                parent.insertBefore(createDOM(newVNodeChild), childNode)
+            } else {
+                parent.appendChild(createDOM(newVNodeChild))
+            }
+        }
+    })
+
 }
 
 export default {

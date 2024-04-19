@@ -1,4 +1,4 @@
-import { createDOM } from './react-dom'
+import { createDOM, updateDOMTree } from './react-dom'
 
 /**
  * 单例模式创建更新器队列，只存在一个，全部组件共用
@@ -64,18 +64,12 @@ class Updater {
 
         const classCompInstance = this.classCompInstance
 
-        // 拿到旧dom的父节点
-        const oldDOM = classCompInstance.oldDOM
-        const parent = oldDOM.parentNode
-        // 删除其子元素
-        parent.removeChild(oldDOM)
-
-        // 拿到新dom节点
+        const oldVNode = classCompInstance.oldVNode
+        const oldDOM = oldVNode.dom
         const newVNode = classCompInstance.render()
-        const newDOM = createDOM(newVNode)
-        // 将新节点插入父节点
-        parent.appendChild(newDOM)
-        classCompInstance.oldDOM = newDOM
+        classCompInstance.oldVNode = newVNode
+
+        updateDOMTree(oldVNode, newVNode, oldDOM)
     }
 }
 
