@@ -194,8 +194,12 @@ function updateChildren(oldVNodeChildren, newVNodeChildren, parent) {
     // 用于记录新节点的操作： 移动，新增
     const actions = []
     const oldVNodeKeyMap = {}
-    oldVNodeChildren.forEach(oldVNodeChild => oldVNodeKeyMap[oldVNodeChild.key] = oldVNodeChild)
+    oldVNodeChildren.forEach((oldVNodeChild, index) => {
+        oldVNodeChild.key = oldVNodeChild.key ? oldVNodeChild.key : index
+        oldVNodeKeyMap[oldVNodeChild.key] = oldVNodeChild
+    })
     newVNodeChildren.forEach((newVNodeChild, index) => {
+        newVNodeChild.key = newVNodeChild.key ? newVNodeChild.key : index
         // 匹配到旧节点
         if(oldVNodeKeyMap[newVNodeChild.key]) {
             const oldVNodeChild = oldVNodeKeyMap[newVNodeChild.key]
@@ -207,14 +211,13 @@ function updateChildren(oldVNodeChildren, newVNodeChildren, parent) {
                     oldVNodeChild,
                     index
                 })
-                deepDomDiff(oldVNodeChild, newVNodeChild, oldVNodeChild.dom.parent)
-
+                updateDOMTree(oldVNodeChild, newVNodeChild, oldVNodeChild.dom)
                 // 将用到的删除，oldVNodeKeyMap中最后剩下的，都是用不到的
                 delete oldVNodeKeyMap[newVNodeChild.key]
             } else {
                 // 使用旧节点
                 lasNotChangeIndex = oldVNodeChild.index
-                deepDomDiff(oldVNodeChild, newVNodeChild, oldVNodeChild.dom.parent)
+                updateDOMTree(oldVNodeChild, newVNodeChild, oldVNodeChild.dom)
                 // 将用到的删除，oldVNodeKeyMap中最后剩下的，都是用不到的
                 delete oldVNodeKeyMap[newVNodeChild.key]
             }
