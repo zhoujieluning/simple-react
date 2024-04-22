@@ -1,6 +1,6 @@
-// import React, { useState, useReducer } from 'react';
+// import React, { useState, useReducer, useEffect, useRef } from 'react';
 // import ReactDOM from 'react-dom';
-import React, { useState, useReducer, useEffect } from './react';
+import React, { useState, useReducer, useEffect, useRef } from './react';
 import ReactDOM from './react-dom';
 import './index.css'
 
@@ -16,11 +16,12 @@ function reducer(state, action) {
 }
 
 function FuncComp(props) {
+    const ref = useRef(null)
     const [amount, setAmount] = useState(0)
     const [state, dispatch] = useReducer(reducer, { count: 0 })
-    console.log(state);
     useEffect(() => {
         console.log('update');
+        console.log(ref);
     }, [amount, state.count])
     function addOne() {
         dispatch({ type: 'add'})
@@ -32,7 +33,7 @@ function FuncComp(props) {
         setAmount(amount + 1)
     }
 
-    return <div>
+    return <div ref={ref}>
         {state.count}
         <button onClick={addOne}>加</button>
         <button onClick={minusOne}>减</button>
