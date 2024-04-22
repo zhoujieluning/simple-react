@@ -1,11 +1,40 @@
-// import React from 'react';
+// import React, { useState, useReducer } from 'react';
 // import ReactDOM from 'react-dom';
-import React from './react';
+import React, { useState, useReducer } from './react';
 import ReactDOM from './react-dom';
 import './index.css'
 
+function reducer(state, action) {
+    switch(action.type) {
+        case 'add':
+            return state + 1
+        case 'minus':
+            return state - 1
+        default:
+            throw new Error('unknown action')
+    }
+}
+
 function FuncComp(props) {
-    return <div>asdf</div>
+    const [amount, setAmount] = useState(0)
+    const [count, dispatch] = useReducer(reducer, 0)
+    function addOne() {
+        dispatch({ type: 'add'})
+    }
+    function minusOne() {
+        dispatch({ type: 'minus'})
+    }
+    function addAmount() {
+        setAmount(amount + 1)
+    }
+
+    return <div>
+        {count}
+        <button onClick={addOne}>加</button>
+        <button onClick={minusOne}>减</button>
+        <button onClick={addAmount}>amount</button>
+        <div>{amount}</div>
+    </div>
 }
 
 const ForwardFuncComp = React.forwardRef((props, ref) => {
@@ -18,6 +47,19 @@ class ClassComp extends React.Component {
         this.state = {
             arr: ['A', 'B', 'C', 'D', 'E' ]
         }
+    }
+    componentDidMount() {
+        console.log('mount');
+        const aaa = document.getElementById('#aaa')
+        debugger
+        console.log(aaa);
+    }
+
+    componentDidUpdate(prevProps, pervState, snapshot) {
+        console.log('update', prevProps, pervState);
+    }
+    componentWillUnMount() {
+        console.log('unmount');
     }
     changeArr(e) {
         this.setState({
@@ -41,4 +83,4 @@ const root = document.getElementById('root')
 //             <span onClick={(e) => {console.log(e.currentTarget);}}>子元素</span>
 //         </div> 
 //     )
-ReactDOM.render(<ClassComp />, root);
+ReactDOM.render(<FuncComp />, root);

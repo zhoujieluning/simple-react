@@ -1,5 +1,7 @@
 import { addEvent } from './event'
 import { primitiveDataTypes, REACT_ELEMENT, REACT_FORWARD_REF, REACT_TEXT } from './utils';
+import { resetHookIndex } from './hooks'
+export let emitUpdateForHooks
 
 function render(VNode, containerDOM) {
     // 文本直接挂载
@@ -8,11 +10,19 @@ function render(VNode, containerDOM) {
         return 
     }
     mount(VNode, containerDOM)
+    if(typeof VNode.type === 'function' && VNode.type.IS_CLASS_COMP) {
+        VNode.classInstance.componentDidMount()
+    }
+    emitUpdateForHooks = () => {
+        resetHookIndex()
+        updateDOMTree(VNode, VNode, VNode.dom)
+    }
 }
 
 function mount(VNode, containerDOM) {
     // 将虚拟dom转化成真实dom
     const dom = createDOM(VNode)
+    VNode.dom = dom
     // 将真实dom挂载到container
     containerDOM.appendChild(dom)
 }
@@ -33,14 +43,13 @@ export function createDOM(VNode) {
         return getDOMByClassComponent(VNode)
     }
     // 处理函数组件
-    if(typeof type === 'function' && type.$$typeof === REACT_ELEMENT) {
+    if(typeof type === 'function' && VNode.$$typeof === REACT_ELEMENT) {
         return getDOMByFunctionComponent(VNode)
     }
     // 处理函数组件-forwardRef
     if(VNode.$$typeof === REACT_FORWARD_REF) {
         return getDOMByForwardRefFunctionComponent(VNode)
     }
-
     // 处理普通标签
     const container = document.createElement(type)
     children.forEach((child, index) => {
@@ -85,6 +94,7 @@ function getDOMByFunctionComponent(VNode) {
     const { type, props } = VNode
     const renderVNode = type(props)
     if(!renderVNode) return
+    VNode.oldRenderVNode = renderVNode
     return createDOM(renderVNode)
 }
 
@@ -92,7 +102,7 @@ function getDOMByClassComponent(VNode) {
     const { type, props, ref } = VNode
     const classInstance = new type(props)
     const renderVNode = classInstance.render()
-
+    VNode.classInstance = classInstance
     ref && (ref.current = classInstance)
 
     if(!renderVNode) return
@@ -185,7 +195,7 @@ function updateClassComponent(oldVNode, newVNode) {
 function updateFuncComponent(oldVNode, newVNode) {
     const { type, props } = newVNode
     const renderVNode = type(props)
-    updateDOMTree(oldVNode, renderVNode, oldVNode.dom)
+    updateDOMTree(oldVNode.oldRenderVNode, renderVNode, oldVNode.dom)
 }
 
 function updateChildren(oldVNodeChildren, newVNodeChildren, parent) {

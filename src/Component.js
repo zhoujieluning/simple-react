@@ -55,21 +55,13 @@ class Updater {
     }
 
     launchUpdate() {
-        console.log('重新渲染');
         // 状态合并
         this.classCompInstance.state = {
             ...this.classCompInstance.state,
             ...this.pendingStates
         }
+        this.classCompInstance.update()
 
-        const classCompInstance = this.classCompInstance
-
-        const oldVNode = classCompInstance.oldVNode
-        const oldDOM = oldVNode.dom
-        const newVNode = classCompInstance.render()
-        classCompInstance.oldVNode = newVNode
-
-        updateDOMTree(oldVNode, newVNode, oldDOM)
     }
 }
 
@@ -82,5 +74,19 @@ export default class Component {
 
     setState(partialState) {
         this.updater.stageStates(partialState)
+    }
+
+    update() {
+        console.log('重新渲染');
+        const oldVNode = this.oldVNode
+        const oldDOM = oldVNode.dom
+        const newVNode = this.render()
+        this.oldVNode = newVNode
+
+        updateDOMTree(oldVNode, newVNode, oldDOM)
+        const componentDidUpdate = this.componentDidUpdate
+        if(componentDidUpdate && typeof componentDidUpdate === 'function') {
+            componentDidUpdate(this.props, this.state)
+        }
     }
 }
