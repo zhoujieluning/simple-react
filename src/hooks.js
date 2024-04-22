@@ -41,3 +41,26 @@ export function useRef(initialValue) {
     states[hookIndex] = states[hookIndex] || { current: initialValue }
     return states[hookIndex++]
 }
+
+export function useMemo(cb, deps) {
+    const [prevValue, prevDeps] = states[hookIndex] || [null, null]
+    if(!states[hookIndex] || deps.some((item, index) => item !== prevDeps[index])) {
+        const curVal = cb()
+        states[hookIndex++] = [curVal, deps]
+        return curVal
+    } else {
+        hookIndex++
+        return prevValue
+    }
+}
+
+export function useCallback(cb, deps) {
+    const [prevCb, prevDeps] = states[hookIndex] || [null, null]
+    if(!states[hookIndex] || deps.some((item, index) => item !== prevDeps[index])) {
+        states[hookIndex++] = [cb, deps]
+        return cb
+    } else {
+        hookIndex++
+        return prevCb
+    }
+}

@@ -1,44 +1,36 @@
-// import React, { useState, useReducer, useEffect, useRef } from 'react';
+// import React, { useState, useReducer, useEffect, useRef, useMemo, useCallback } from 'react';
 // import ReactDOM from 'react-dom';
-import React, { useState, useReducer, useEffect, useRef } from './react';
+import React, { useState, useReducer, useEffect, useRef, useMemo, useCallback } from './react';
 import ReactDOM from './react-dom';
 import './index.css'
 
-function reducer(state, action) {
-    switch(action.type) {
-        case 'add':
-            return { count: state.count + 1 }
-        case 'minus':
-            return { count: state.count - 1 }
-        default:
-            throw new Error('unknown action')
-    }
-}
 
 function FuncComp(props) {
-    const ref = useRef(null)
-    const [amount, setAmount] = useState(0)
-    const [state, dispatch] = useReducer(reducer, { count: 0 })
-    useEffect(() => {
-        console.log('update');
-        console.log(ref);
-    }, [amount, state.count])
-    function addOne() {
-        dispatch({ type: 'add'})
-    }
-    function minusOne() {
-        dispatch({ type: 'minus'})
-    }
-    function addAmount() {
-        setAmount(amount + 1)
-    }
+    const [count1, setCount1] = useState(0)
+    const [count2, setCount2] = useState(0)
+    const [count3, setCount3] = useState(0)
+    const amount = useMemo(() => {
+        console.log('缓存计算');
+        return count1 + count2
+    }, [count1, count2])
 
-    return <div ref={ref}>
-        {state.count}
-        <button onClick={addOne}>加</button>
-        <button onClick={minusOne}>减</button>
-        <button onClick={addAmount}>amount</button>
-        <div>{amount}</div>
+    const addCount12 = useCallback(() => {
+        console.log('缓存函数');
+        setCount1(count1 + 1)
+        setCount2(count2 + 1)
+    }, [count1], [count2])
+
+    function addCount3() {
+        setCount3(count3 + 1)
+    }
+    
+    return <div>
+        <div>count1:{count1}</div>
+        <div>count2:{count2}</div>
+        <div>count3:{count3}</div>
+        <div>amount:{amount}</div>
+        <button onClick={addCount12}>count12</button>
+        <button onClick={addCount3}>count3</button>
     </div>
 }
 
