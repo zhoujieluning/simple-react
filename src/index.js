@@ -1,15 +1,15 @@
 // import React, { useState, useReducer } from 'react';
 // import ReactDOM from 'react-dom';
-import React, { useState, useReducer } from './react';
+import React, { useState, useReducer, useEffect } from './react';
 import ReactDOM from './react-dom';
 import './index.css'
 
 function reducer(state, action) {
     switch(action.type) {
         case 'add':
-            return state + 1
+            return { count: state.count + 1 }
         case 'minus':
-            return state - 1
+            return { count: state.count - 1 }
         default:
             throw new Error('unknown action')
     }
@@ -17,7 +17,11 @@ function reducer(state, action) {
 
 function FuncComp(props) {
     const [amount, setAmount] = useState(0)
-    const [count, dispatch] = useReducer(reducer, 0)
+    const [state, dispatch] = useReducer(reducer, { count: 0 })
+    console.log(state);
+    useEffect(() => {
+        console.log('update');
+    }, [amount, state.count])
     function addOne() {
         dispatch({ type: 'add'})
     }
@@ -29,7 +33,7 @@ function FuncComp(props) {
     }
 
     return <div>
-        {count}
+        {state.count}
         <button onClick={addOne}>加</button>
         <button onClick={minusOne}>减</button>
         <button onClick={addAmount}>amount</button>

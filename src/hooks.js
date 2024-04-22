@@ -25,3 +25,14 @@ export function useReducer(reducer, initialValue) {
     }
     return [states[hookIndex++], dispatch]
 }
+
+export function useEffect(effectFunc, deps) {
+    const currentIndex = hookIndex
+    const [destroyedFunc, prevDeps] = states[currentIndex] || [null, null]
+    // 首次调用，或者依赖发生变化
+    if(!deps || !states[currentIndex] || deps.some((item, index) => item !== prevDeps[index])) {
+        destroyedFunc && typeof destroyedFunc === 'function' && destroyedFunc()
+        states[currentIndex] = [effectFunc(), deps]
+    }
+    hookIndex++
+}
